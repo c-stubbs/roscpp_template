@@ -2,15 +2,19 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>template</name>
-  <version>0.0.0</version>
-  <description>TODO: Package description</description>
-  <maintainer email="chandler.stubbs99@gmail.com">chandler</maintainer>
-  <license>TODO: License declaration</license>
+  <version>0.1.0</version>
+  <description>Template to be used in the creation of programs that utilize the Robotic Operating System (ROS). Examples of various ROS functionalities, such as publisher
+                and subscribers, are to be present in the node to be used as reference in other nodes.</description>
+  <maintainer email="chandler.stubbs99@gmail.com">Chandler Stubbs</maintainer>
+  <license>GNU License</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
+
+  <depend>rclcpp</depend>
+  <depend>std_msgs</depend>
 
   <export>
     <build_type>ament_cmake</build_type>

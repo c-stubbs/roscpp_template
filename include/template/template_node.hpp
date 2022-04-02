@@ -14,14 +14,16 @@
 class TemplateNode
 {
 public:
-  TemplateNode(rclcpp::Node::SharedPtr nh);
+    // Header for the node
+    TemplateNode(rclcpp::Node::SharedPtr nh);
 
 private:
-  void step();
-  size_t count_;
-  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr publisher_;
-  rclcpp::TimerBase::SharedPtr timer_;
-  rclcpp::Node::SharedPtr nh_;
+    // Declaration of the class functions and variables
+    void step();
+    size_t count_;
+    rclcpp::Publisher<std_msgs::msg::String>::SharedPtr publisher_;
+    rclcpp::TimerBase::SharedPtr timer_;
+    rclcpp::Node::SharedPtr nh_;
 };
 
-#endif  // TEMPLATE_NODE_HPP
+#endif // TEMPLATE_NODE_HPP
