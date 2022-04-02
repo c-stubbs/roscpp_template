@@ -20,10 +20,10 @@ public:
 private:
     // Declaration of the class functions and variables
     void step();
-    size_t count_;
     rclcpp::Publisher<std_msgs::msg::String>::SharedPtr publisher_;
     rclcpp::TimerBase::SharedPtr timer_;
     rclcpp::Node::SharedPtr nh_;
+    size_t count_;
 };
 
 #endif // TEMPLATE_NODE_HPP

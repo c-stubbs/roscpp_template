@@ -7,7 +7,7 @@
 
 #include <chrono>
 
-#include "template/template_node.hpp"
+#include "roscpp_template/template_node.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/string.hpp"
 

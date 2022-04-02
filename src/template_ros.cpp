@@ -6,7 +6,7 @@
 */
 
 #include <memory>
-#include "template/template_node.hpp"
+#include "roscpp_template/template_node.hpp"
 #include "rclcpp/rclcpp.hpp"
 
 int main(int argc, char *argv[])
