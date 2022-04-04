@@ -10,6 +10,8 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/string.hpp"
+#include <std_srvs/srv/empty.hpp>
+#include <roscpp_template/srv/example_service.hpp>
 
 class TemplateNode
 {
@@ -22,8 +24,10 @@ private:
     void step();
     rclcpp::Publisher<std_msgs::msg::String>::SharedPtr publisher_;
     rclcpp::TimerBase::SharedPtr timer_;
+    rclcpp::Service<roscpp_template::srv::ExampleService>::SharedPtr service_;
     rclcpp::Node::SharedPtr nh_;
-    size_t count_;
+    int64_t count_;
+    bool serviceCallback(const roscpp_template::srv::ExampleService::Request::SharedPtr, roscpp_template::srv::ExampleService::Response::SharedPtr);
 };
 
 #endif // TEMPLATE_NODE_HPP

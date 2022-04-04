@@ -15,9 +15,12 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(rosidl_default_generators REQUIRED)
+find_package(roscpp_template REQUIRED)
+find_package(std_srvs REQUIRED)
 
 # set a variable "dependencies" to call later
-set(dependencies "rclcpp" "std_msgs")
+set(dependencies "rclcpp" "std_srvs" "std_msgs" "rosidl_default_generators" "roscpp_template")
 
 # set a variable "template_node_SRC" to call later in place of the src files needed for the template pkg
 set(template_node_SRCS
@@ -25,6 +28,9 @@ set(template_node_SRCS
   src/template_node.cpp
 )
 
+rosidl_generate_interfaces(${PROJECT_NAME}
+  "srv/ExampleService.srv"
+)
 # Add the executable object for the template pkg sources
 add_executable(template_node ${template_node_SRCS})
 
