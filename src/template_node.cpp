@@ -17,17 +17,27 @@ using namespace std::chrono_literals; // Needed for "100ms" in the wall timer
 // the publishers, subscribers, etc.
 TemplateNode::TemplateNode(rclcpp::Node::SharedPtr nh)
     : nh_(nh), count_(0)
-{
+{   
+
+    // Declaring ROS parameters to be set in either launch files, yaml files, or through command line.
+    double timer_period_;
+    // Delcare a parameter of name "timer_period" and set it's default value to 2.0
+    nh_->declare_parameter("timer_period",2.0);
+    // Get the parameter "timer_period" and store it's value locally in timer_period_.
+    nh_->get_parameter<double>("timer_period",timer_period_);
+    
     // Creating the publisher that publishes a String to the topic "hello_world_counter".
     // The 10 tells the publisher to keep the last 10 published values in the
     // event that messages can not be delivered.
     publisher_ = nh_->create_publisher<std_msgs::msg::String>("hello_world_counter", 10);
 
-    // Creating a timer that calls the step() function once every 100ms.
-    timer_ = nh_->create_wall_timer(100ms, std::bind(&TemplateNode::step, this));
+    // Creating a timer that calls the step() function at a frequency determined by timer_period_ in millis.
+    timer_ = nh_->create_wall_timer(std::chrono::duration<double>(timer_period_), std::bind(&TemplateNode::step, this));
 
     // Creating a service that is bound to the resetCountSrvCallback function that resets the count to 0 when called.
     reset_count_srv_ = nh_->create_service<roscpp_template::srv::ResetCount>("/template_node/reset_count", std::bind(&TemplateNode::resetCountSrvCallback, this, std::placeholders::_1, std::placeholders::_2));
+
+    
 }
 
 void TemplateNode::step()
