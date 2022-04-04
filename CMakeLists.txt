@@ -16,11 +16,16 @@ find_package(ament_cmake REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
-find_package(roscpp_template REQUIRED)
 find_package(std_srvs REQUIRED)
 
+rosidl_generate_interfaces(${PROJECT_NAME}
+  "srv/ResetCount.srv"
+)
+
+ament_export_dependencies(rosidl_default_runtime)
+
 # set a variable "dependencies" to call later
-set(dependencies "rclcpp" "std_srvs" "std_msgs" "rosidl_default_generators" "roscpp_template")
+set(dependencies "rclcpp" "std_srvs" "std_msgs" "rosidl_default_generators")
 
 # set a variable "template_node_SRC" to call later in place of the src files needed for the template pkg
 set(template_node_SRCS
@@ -28,9 +33,7 @@ set(template_node_SRCS
   src/template_node.cpp
 )
 
-rosidl_generate_interfaces(${PROJECT_NAME}
-  "srv/ExampleService.srv"
-)
+
 # Add the executable object for the template pkg sources
 add_executable(template_node ${template_node_SRCS})
 
@@ -42,6 +45,12 @@ target_include_directories(template_node
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
+)
+
+# This is necessary to link the node to the interfaces (srvs/msgs) generated in this package. Apparently this is ros-counterculture but I find it necessary sometimes.
+rosidl_target_interfaces(template_node
+  ${PROJECT_NAME}
+  "rosidl_typesupport_cpp"
 )
 
 # Actually build and install the package

@@ -26,8 +26,8 @@ TemplateNode::TemplateNode(rclcpp::Node::SharedPtr nh)
     // Creating a timer that calls the step() function once every 100ms.
     timer_ = nh_->create_wall_timer(100ms, std::bind(&TemplateNode::step, this));
 
-    // Creating a service
-    service_ = nh_->create_service<roscpp_template::srv::ExampleService>("/template_service", std::bind(&TemplateNode::serviceCallback, this, std::placeholders::_1, std::placeholders::_2));
+    // Creating a service that is bound to the resetCountSrvCallback function that resets the count to 0 when called.
+    reset_count_srv_ = nh_->create_service<roscpp_template::srv::ResetCount>("/template_node/reset_count", std::bind(&TemplateNode::resetCountSrvCallback, this, std::placeholders::_1, std::placeholders::_2));
 }
 
 void TemplateNode::step()
@@ -36,7 +36,7 @@ void TemplateNode::step()
     // detects what c++ data type that "message" needs to be.
     auto message = std_msgs::msg::String();
 
-    // Set the data field of message to be Hellow, world! with an incrementing int
+    // Set the data field of message to be Hello, world! with an incrementing int
     message.data = "Hello, world! " + std::to_string(count_++);
 
     // Broadcasts a message of urgency level "info" to the console. Also keeps
@@ -47,8 +47,13 @@ void TemplateNode::step()
     publisher_->publish(message);
 }
 
-bool TemplateNode::serviceCallback(const roscpp_template::srv::ExampleService::Request::SharedPtr req, roscpp_template::srv::ExampleService::Response::SharedPtr)
+bool TemplateNode::resetCountSrvCallback(const roscpp_template::srv::ResetCount::Request::SharedPtr, roscpp_template::srv::ResetCount::Response::SharedPtr)
 {
-    this->count_ = req->new_num;
+    // Change the value of count to 0.
+    this->count_ = 0;
+
+    // Output to console at level warn that the count is being reset.
+    RCLCPP_WARN(nh_->get_logger(),"Resetting count to 0.");
+    
     return true;
 }
