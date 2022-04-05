@@ -1,0 +1,2 @@
+# ROS C++ Template
+The purpose of this repo is to hold examples of various ROS functionalities in a 'template' format which can then be copied and pasted for future use, or used as a reference for debugging, etc.
