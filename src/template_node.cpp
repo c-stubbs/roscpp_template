@@ -17,15 +17,18 @@ using namespace std::chrono_literals; // Needed for "100ms" in the wall timer
 // the publishers, subscribers, etc.
 TemplateNode::TemplateNode(rclcpp::Node::SharedPtr nh)
     : nh_(nh), count_(0)
-{   
+{
 
-    // Declaring ROS parameters to be set in either launch files, yaml files, or through command line.
+    // Declaring ROS parameter timer_period that is initialized in a launch or yaml file, which then cannot be changed
     double timer_period_;
-    // Delcare a parameter of name "timer_period" and set it's default value to 2.0
-    nh_->declare_parameter("timer_period",2.0);
+    // Create and set the period_descriptor which sets the timer_period to read_only, meaning that the param can not be changed
+    // once it has been initialized.
+    rcl_interfaces::msg::ParameterDescriptor period_desciptor;
+    period_desciptor.read_only = true;
+    nh_->declare_parameter("timer_period", 2.0, period_desciptor);
     // Get the parameter "timer_period" and store it's value locally in timer_period_.
-    nh_->get_parameter<double>("timer_period",timer_period_);
-    
+    nh_->get_parameter<double>("timer_period", timer_period_);
+
     // Creating the publisher that publishes a String to the topic "hello_world_counter".
     // The 10 tells the publisher to keep the last 10 published values in the
     // event that messages can not be delivered.
@@ -37,24 +40,35 @@ TemplateNode::TemplateNode(rclcpp::Node::SharedPtr nh)
     // Creating a service that is bound to the resetCountSrvCallback function that resets the count to 0 when called.
     reset_count_srv_ = nh_->create_service<roscpp_template::srv::ResetCount>("/template_node/reset_count", std::bind(&TemplateNode::resetCountSrvCallback, this, std::placeholders::_1, std::placeholders::_2));
 
-    
+    // Declare parameters for use with dynamic reconfigure
+    declareDynamicParameters();
+
+    // Set up Dynamic Reconfigure
+    dyncfgSetup();
 }
 
 void TemplateNode::step()
 {
-    // Creates a local variable "message" that is a std_msg String. Auto automatically
-    // detects what c++ data type that "message" needs to be.
-    auto message = std_msgs::msg::String();
+    // Check to see if the user has called for the node to be paused.
+    if (!paused_)
+    {
+        // Creates a local variable "message" that is a std_msg String. Auto automatically
+        // detects what c++ data type that "message" needs to be.
+        auto message = std_msgs::msg::String();
 
-    // Set the data field of message to be Hello, world! with an incrementing int
-    message.data = "Hello, world! " + std::to_string(count_++);
+        // Set the data field of message to be Hello, world! with an incrementing int
+        message.data = "Hello, world! " + std::to_string(count_);
 
-    // Broadcasts a message of urgency level "info" to the console. Also keeps
-    // a log of the messages that are broadcast under /opt/ros/foxy/ somewhere.
-    RCLCPP_INFO(nh_->get_logger(), "Publisher: '%s'", message.data.c_str());
+        // Broadcasts a message of urgency level "info" to the console. Also keeps
+        // a log of the messages that are broadcast under /opt/ros/foxy/ somewhere.
+        RCLCPP_INFO(nh_->get_logger(), "Publisher: '%s'", message.data.c_str());
 
-    // Actually publishes the message to the proper topic name.
-    publisher_->publish(message);
+        // Actually publishes the message to the proper topic name.
+        publisher_->publish(message);
+
+        // Increment the count
+        count_ = count_ + increment_;
+    }
 }
 
 bool TemplateNode::resetCountSrvCallback(const roscpp_template::srv::ResetCount::Request::SharedPtr, roscpp_template::srv::ResetCount::Response::SharedPtr)
@@ -63,7 +77,90 @@ bool TemplateNode::resetCountSrvCallback(const roscpp_template::srv::ResetCount:
     this->count_ = 0;
 
     // Output to console at level warn that the count is being reset.
-    RCLCPP_WARN(nh_->get_logger(),"Resetting count to 0.");
-    
+    RCLCPP_WARN(nh_->get_logger(), "Resetting count to 0 via ResetCount Service.");
+
     return true;
+}
+
+void TemplateNode::declareDynamicParameters()
+{
+    // Delcare the range to be used with the increment param
+    rcl_interfaces::msg::IntegerRange range;
+    // Set the minimum value of the range
+    range.from_value = 0;
+    // Set the resolution of the range
+    range.step = 1;
+    // Set the maximum value of the range
+    range.to_value = 50;
+    // Declare the descriptor of the increment param
+    rcl_interfaces::msg::ParameterDescriptor increment_descriptor;
+    // Set the value of the integer range of increment to be the previously set range
+    increment_descriptor.integer_range.push_back(range);
+
+    // Declare various parameters
+    nh_->declare_parameter("change_count_to", 0);
+    nh_->declare_parameter("pause", false);
+    nh_->declare_parameter("change_increment_to", 1, increment_descriptor);
+}
+
+void TemplateNode::dyncfgSetup()
+{
+    // Dynamic Config Setup
+    param_cb_ = nh_->add_on_set_parameters_callback(std::bind(&TemplateNode::parameterUpdate, this, std::placeholders::_1));
+    priv_parameters_client_ = std::make_shared<rclcpp::AsyncParametersClient>(nh_);
+    while (!priv_parameters_client_->wait_for_service(std::chrono::seconds(1)))
+    {
+        if (!rclcpp::ok())
+        {
+            RCLCPP_ERROR(nh_->get_logger(), "Interrupted while waiting for the service. Exiting.");
+            return;
+        }
+        RCLCPP_WARN(nh_->get_logger(), "Service not available, waiting again...");
+    }
+
+    // Checking for which variable has been changed and outputting to console depending on which was change.
+    // Then storing the new variable in class variables.
+    auto param_event_callback = [this](const rcl_interfaces::msg::ParameterEvent::SharedPtr event) -> void
+    {
+        for (const auto &changed_parameter : event->changed_parameters)
+        {
+            RCLCPP_DEBUG(nh_->get_logger(), "Changed parameter name : %s", changed_parameter.name.c_str());
+
+            if (changed_parameter.name == "change_count_to")
+            {
+                // Retreive the change_count_to variable as an int.
+                int new_val = rclcpp::Parameter::from_parameter_msg(changed_parameter).as_int();
+                // Output to console that the count is being changed to the new value.
+                RCLCPP_INFO(nh_->get_logger(), "Setting the Count to %d.", new_val);
+                // Storing the new value of count.
+                this->count_ = new_val;
+            }
+
+            if (changed_parameter.name == "change_increment_to")
+            {
+                int new_val = rclcpp::Parameter::from_parameter_msg(changed_parameter).as_int();
+                RCLCPP_INFO(nh_->get_logger(), "Setting the Increment to %d.", new_val);
+                this->increment_ = new_val;
+            }
+
+            if (changed_parameter.name == "pause")
+            {
+                bool new_val = rclcpp::Parameter::from_parameter_msg(changed_parameter).as_bool();
+                RCLCPP_WARN(nh_->get_logger(), "%s", new_val ? "Pausing the Count Increment." : "Un-Pausing the Count Increment.");
+                this->paused_ = new_val;
+            }
+        }
+    };
+    parameter_event_sub_ = priv_parameters_client_->on_parameter_event(param_event_callback);
+}
+
+rcl_interfaces::msg::SetParametersResult TemplateNode::parameterUpdate(const std::vector<rclcpp::Parameter> &parameters)
+{
+    rcl_interfaces::msg::SetParametersResult result;
+    result.successful = true;
+    for (const rclcpp::Parameter &parameter : parameters)
+    {
+        RCLCPP_WARN(nh_->get_logger(), "parameterUpdate(): Parameter \'%s\' = %s", parameter.get_name().c_str(), parameter.value_to_string().c_str());
+    }
+    return result;
 }

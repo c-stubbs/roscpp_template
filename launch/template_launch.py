@@ -10,7 +10,7 @@ def generate_launch_description():
             output="screen",
             emulate_tty=True,
             parameters=[
-                {"timer_period": 5.0}
+                {"timer_period": 1.0}
             ]
         )
     ])
